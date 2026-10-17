@@ -1746,6 +1746,7 @@ export function AgentOverview({
   const identity = useQuery({
     queryKey: [...queryKeys.agents.identity(agent.id), lastRun?.id, lastRun?.status],
     queryFn: () => agentsApi.getIdentity(agent.id, agent.companyId),
+    retry: false,
   });
   const hasHumanCreator = Boolean(humanAgentCreatorUserId(agent.createdByUserId));
   const userDirectory = useQuery({

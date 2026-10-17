@@ -112,8 +112,14 @@ function agentPath(id: string, companyId?: string, suffix = "") {
 export const agentsApi = {
   setAvatar: (companyId: string, agentId: string, imageBase64: string | null) =>
     api.put<{ agentId: string; appearance: import("@paperclipai/shared").AgentAppearance; avatarUrl: string }>(`/companies/${companyId}/agents/${agentId}/avatar`, { imageBase64 }),
-  getIdentity: (id: string, companyId?: string) =>
-    api.get<AgentPublicIdentity | null>(agentPath(id, companyId, "/identity")),
+  getIdentity: async (id: string, companyId?: string) => {
+    try {
+      return await api.get<AgentPublicIdentity | null>(agentPath(id, companyId, "/identity"));
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 404) return null;
+      throw err;
+    }
+  },
   adoptAiConnection: (agentId: string, interactionId: string, connectionId: string, companyId: string) =>
     api.post<ConnectionIntentInteraction>(withCompanyScope(`/agents/${agentId}/connection-intents/${interactionId}/adopt`, companyId), { connectionId }),
 
