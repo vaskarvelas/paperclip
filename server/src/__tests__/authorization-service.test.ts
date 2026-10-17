@@ -1809,6 +1809,29 @@ describeEmbeddedPostgres("authorization service", () => {
     const otherCompany = await createCompany(db, "other-wake");
     expect(await auth.decide({ actor, action: "agent:wake", resource: { ...resource, companyId: otherCompany.id } })).toMatchObject({ allowed: false });
   });
+  it("allows active company agents to wake peer agents in the same company", async () => {
+    const company = await createCompany(db, "AgentWake");
+    const callerAgent = await createAgent(db, company.id, "Caller");
+    const peerAgent = await createAgent(db, company.id, "Peer");
+    const otherCompany = await createCompany(db, "OtherCompanyWake");
+    const foreignAgent = await createAgent(db, otherCompany.id, "Foreign");
+
+    const auth = authorizationService(db);
+    const actor = { type: "agent" as const, agentId: callerAgent.id, companyId: company.id, source: "agent_jwt" as const };
+
+    // Self wake
+    expect(await auth.decide({ actor, action: "agent:wake", resource: { type: "agent", companyId: company.id, agentId: callerAgent.id } }))
+      .toMatchObject({ allowed: true, reason: "allow_self" });
+
+    // Peer agent wake in same company
+    expect(await auth.decide({ actor, action: "agent:wake", resource: { type: "agent", companyId: company.id, agentId: peerAgent.id } }))
+      .toMatchObject({ allowed: true, reason: "allow_company_agent" });
+
+    // Foreign agent wake in different company
+    expect(await auth.decide({ actor, action: "agent:wake", resource: { type: "agent", companyId: otherCompany.id, agentId: foreignAgent.id } }))
+      .toMatchObject({ allowed: false, reason: "deny_company_boundary" });
+  });
+
 
   it.each(["session", "cloud_tenant"] as const)("restricts %s workspace-owner stop confirmation to administrators", async source => {
     const company = await createCompany(db, "OwnerStop");

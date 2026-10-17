@@ -2454,11 +2454,32 @@ function createAuthorizationService(db: Db | DbTransaction, readSnapshot?: ReadA
       });
     }
 
-    if (input.action === "agent:wake" && input.resource.type === "agent" && input.resource.agentId === actorAgentId) {
+    if (input.action === "agent:wake" && input.resource.type === "agent") {
+      if (input.resource.agentId === actorAgentId) {
+        return allow({
+          action: input.action,
+          reason: "allow_self",
+          explanation: "Allowed because the actor is waking itself.",
+        });
+      }
+      if (!isSimpleAssignableAgentStatus(actorAgent.status)) {
+        return deny({
+          action: input.action,
+          reason: "deny_missing_membership",
+          explanation: "Actor agent is not active for agent wakeup.",
+        });
+      }
+      if (input.resource.companyId !== companyId) {
+        return deny({
+          action: input.action,
+          reason: "deny_company_boundary",
+          explanation: "Target agent is not in the same company.",
+        });
+      }
       return allow({
         action: input.action,
-        reason: "allow_self",
-        explanation: "Allowed because the actor is waking itself.",
+        reason: "allow_company_agent",
+        explanation: "Allowed for an active company agent to coordinate work.",
       });
     }
 
