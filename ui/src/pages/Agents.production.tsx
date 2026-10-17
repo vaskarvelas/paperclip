@@ -23,7 +23,7 @@ import { relativeTime, cn, agentRouteRef, agentUrl } from "../lib/utils";
 import { PageTabBar } from "../components/PageTabBar";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Bot, Plus, List, GitBranch } from "lucide-react";
+import { AlertTriangle, Bot, Plus, List, GitBranch, Users } from "lucide-react";
 import { AGENT_ROLE_LABELS, type Agent, type Environment, type EnvironmentCapabilities } from "@paperclipai/shared";
 import {
   resourceMembershipState,
@@ -183,6 +183,69 @@ function filterOrgTree(nodes: OrgNode[], tab: FilterTab, builtInAgentIds: Set<st
       return acc;
     }, [])
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+export type AgentsView = "list" | "teams" | "org";
+
+interface TeamGroup {
+  name: string;
+  lead: Agent | null;
+  members: Agent[];
+}
+
+function groupAgentsIntoTeams(agentsList: Agent[]): TeamGroup[] {
+  const agentMap = new Map<string, Agent>();
+  for (const a of agentsList) {
+    agentMap.set(a.id, a);
+  }
+
+  const groupsMap = new Map<string, Agent[]>();
+  for (const a of agentsList) {
+    const team = (a.metadata && typeof a.metadata === "object" && typeof (a.metadata as Record<string, unknown>).team === "string")
+      ? ((a.metadata as Record<string, unknown>).team as string).trim()
+      : null;
+
+    let groupName = team;
+    if (!groupName) {
+      if (a.reportsTo && agentMap.has(a.reportsTo)) {
+        const mgr = agentMap.get(a.reportsTo)!;
+        const mgrTeam = (mgr.metadata && typeof mgr.metadata === "object" && typeof (mgr.metadata as Record<string, unknown>).team === "string")
+          ? ((mgr.metadata as Record<string, unknown>).team as string).trim()
+          : null;
+        groupName = mgrTeam || (mgr.reportsTo ? `${mgr.name}'s Team` : "General");
+      } else {
+        groupName = "General";
+      }
+    }
+
+    const list = groupsMap.get(groupName) ?? [];
+    list.push(a);
+    groupsMap.set(groupName, list);
+  }
+
+  const result: TeamGroup[] = [];
+  for (const [name, members] of groupsMap.entries()) {
+    const lead = members.find((m) => {
+      const isMgr = members.some((other) => other.reportsTo === m.id);
+      const hasLeadInTitle = /lead|manager|head|chief/i.test(`${m.title ?? ""} ${m.name}`);
+      return isMgr || hasLeadInTitle;
+    }) ?? members[0] ?? null;
+
+    result.push({
+      name,
+      lead,
+      members: members.sort((a, b) => {
+        if (lead && a.id === lead.id) return -1;
+        if (lead && b.id === lead.id) return 1;
+        return a.name.localeCompare(b.name);
+      }),
+    });
+  }
+
+  return result.sort((a, b) => {
+    if (a.name.toLowerCase().includes("operation") || a.name.toLowerCase().includes("leadership")) return -1;
+    if (b.name.toLowerCase().includes("operation") || b.name.toLowerCase().includes("leadership")) return 1;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export function Agents() {
@@ -468,6 +531,18 @@ export function Agents() {
               <button
                 className={cn(
                   "p-1.5 transition-colors",
+                  effectiveView === "teams" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50"
+                )}
+                onClick={() => setView("teams")}
+                title="Teams view"
+                aria-label="Teams view"
+                aria-pressed={effectiveView === "teams"}
+              >
+                <Users className="h-3.5 w-3.5" />
+              </button>
+              <button
+                className={cn(
+                  "p-1.5 transition-colors",
                   effectiveView === "org" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/50"
                 )}
                 onClick={() => setView("org")}
@@ -509,6 +584,40 @@ export function Agents() {
       )}
 
       {effectiveView === "list" && agents && agents.length > 0 && filtered.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          No agents match the selected status.
+        </p>
+      )}
+
+      {/* Teams view */}
+      {effectiveView === "teams" && filtered.length > 0 && (
+        <div className="space-y-6">
+          {groupAgentsIntoTeams(filtered).map((group) => (
+            <div key={group.name} className="space-y-2 rounded-lg border border-border/70 bg-card/40 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm tracking-tight text-foreground">{group.name}</h3>
+                  <span className="rounded-full bg-secondary/80 px-2 py-0.5 text-xs text-muted-foreground">
+                    {group.members.length} {group.members.length === 1 ? "member" : "members"}
+                  </span>
+                </div>
+                {group.lead && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground/80">Lead:</span>
+                    <span className="text-primary font-medium">{group.lead.name}</span>
+                  </div>
+                )}
+              </div>
+              <div className="divide-y divide-border/40">
+                {group.members.map(renderAgentRow)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {effectiveView === "teams" && agents && agents.length > 0 && filtered.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
           No agents match the selected status.
         </p>
