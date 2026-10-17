@@ -49,6 +49,7 @@ import { ExecutionWorkspaceDetail } from "./pages/ExecutionWorkspaceDetail";
 import { Goals } from "./pages/Goals";
 import { Artifacts } from "./pages/Artifacts";
 import { Reviews } from "./pages/Reviews";
+import { Studio } from "./pages/Studio";
 import { GoalDetail } from "./pages/GoalDetail";
 import { Approvals } from "./pages/Approvals";
 import { ApprovalDetail } from "./pages/ApprovalDetail";
@@ -407,6 +408,8 @@ function boardRoutes(streamlinedUiEnabled: boolean, combinedInboxTasksEnabled: b
       <Route path="artifacts" element={<Artifacts />} />
       <Route path="reviews" element={<Reviews />} />
       <Route path="reviews/:reviewId" element={<Reviews />} />
+      <Route path="studio" element={<Studio />} />
+      <Route path="studio/:pageId" element={<Studio />} />
       <Route path="approvals" element={<Navigate to="/approvals/pending" replace />} />
       <Route path="approvals/pending" element={<Approvals />} />
       <Route path="approvals/all" element={<Approvals />} />

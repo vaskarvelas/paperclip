@@ -710,6 +710,14 @@ export async function resolveSiblingFile(htmlPath: string, relativePath: string)
   return { kind: "file", path: target, contentType };
 }
 
+export function injectPaperclipBridge(html: string): string {
+  const bridge = `<script>(function(){var send=function(text,options){try{window.parent.postMessage({type:"paperclip:lavish-prompt",text:String(text||""),queueKey:options&&options.queueKey?String(options.queueKey):null,tag:options&&options.tag?String(options.tag):null,data:options&&options.data?options.data:null},"*");}catch(e){}};if(!window.lavish){window.lavish={queuePrompt:send};}else if(typeof window.lavish.queuePrompt==="function"){var orig=window.lavish.queuePrompt.bind(window.lavish);window.lavish.queuePrompt=function(text,options){send(text,options);return orig(text,options);};}})();</script>`;
+  if (html.includes("</head>")) return html.replace("</head>", `${bridge}</head>`);
+  if (html.includes("<body")) return html.replace("<body", `${bridge}<body`);
+  return `${bridge}${html}`;
+}
+
 export async function readReviewHtml(content: ReviewContent): Promise<string> {
-  return content.kind === "inline" ? content.html : readFile(content.path, "utf8");
+  const raw = content.kind === "inline" ? content.html : await readFile(content.path, "utf8");
+  return injectPaperclipBridge(raw);
 }

@@ -213,6 +213,8 @@ function ReviewDetail({ review }: { review: ReviewItemDetail }) {
   const navigate = useNavigate();
   const { pushToast } = useToastActions();
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [draftFeedback, setDraftFeedback] = useState("");
   const agentName = review.agent?.name ?? "the agent";
 
   const refresh = (next: ReviewItemDetail) => {
@@ -294,6 +296,7 @@ function ReviewDetail({ review }: { review: ReviewItemDetail }) {
           </div>
           <iframe
             key={previewSrc}
+            ref={iframeRef}
             title={`${review.title} preview`}
             src={previewSrc}
             // Never add allow-same-origin: the opaque origin isolates agent HTML
@@ -315,7 +318,17 @@ function ReviewDetail({ review }: { review: ReviewItemDetail }) {
       ) : null}
 
       <ReviewThread review={review} />
-      {resolved ? null : <ReviewComposer review={review} agentName={agentName} textareaRef={composerRef} onSent={refresh} />}
+      {resolved ? null : (
+        <ReviewComposer
+          review={review}
+          agentName={agentName}
+          textareaRef={composerRef}
+          iframeRef={iframeRef}
+          externalDraft={draftFeedback}
+          onExternalDraftConsumed={() => setDraftFeedback("")}
+          onSent={refresh}
+        />
+      )}
     </article>
   );
 }
@@ -390,15 +403,45 @@ function ReviewComposer({
   review,
   agentName,
   textareaRef,
+  iframeRef,
+  externalDraft,
+  onExternalDraftConsumed,
   onSent,
 }: {
   review: ReviewItemDetail;
   agentName: string;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
+  externalDraft: string;
+  onExternalDraftConsumed: () => void;
   onSent: (next: ReviewItemDetail) => void;
 }) {
   const [body, setBody] = useState("");
   const { pushToast } = useToastActions();
+
+  useEffect(() => {
+    if (externalDraft) {
+      setBody((prev) => (prev ? `${prev}\n\n${externalDraft}` : externalDraft));
+      onExternalDraftConsumed();
+    }
+  }, [externalDraft, onExternalDraftConsumed]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return;
+      const payload = event.data as { type?: string; text?: string } | null;
+      if (!payload || payload.type !== "paperclip:lavish-prompt" || !payload.text) return;
+      setBody((prev) => (prev ? `${prev}\n\n${payload.text}` : String(payload.text)));
+      textareaRef.current?.focus();
+      pushToast({
+        title: "Selection added to reply box",
+        body: `Click 'Send to ${agentName}' below to submit your decision.`,
+        tone: "success",
+      });
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [iframeRef, textareaRef, agentName, pushToast]);
   const send = useMutation({
     mutationFn: () => reviewsApi.addMessage(review.id, { body: body.trim() }),
     onSuccess: (next) => {

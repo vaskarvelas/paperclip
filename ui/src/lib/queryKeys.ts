@@ -591,6 +591,11 @@ export const queryKeys = {
     summary: (companyId: string) => ["reviews", companyId, "summary"] as const,
     detail: (companyId: string, reviewId: string) => ["reviews", companyId, "detail", reviewId] as const,
   },
+  studio: {
+    all: (companyId: string) => ["studio", companyId] as const,
+    list: (companyId: string, category: string) => ["studio", companyId, "list", category] as const,
+    detail: (companyId: string, pageId: string) => ["studio", companyId, "detail", pageId] as const,
+  },
   budgets: {
     overview: (companyId: string) =>
       ["budgets", "overview", companyId] as const,

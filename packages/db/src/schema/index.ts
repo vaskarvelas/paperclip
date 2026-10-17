@@ -254,3 +254,4 @@ export { executionWorkspaceRepositoryRoots } from "./execution_workspace_reposit
 export { executionWorkspaceRepositoryAccess } from "./execution_workspace_repository_access.js";
 export * from "./fast_responses.js";
 export { reviewItems, reviewMessages } from "./reviews.js";
+export { studioPages } from "./studio.js";

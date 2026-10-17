@@ -798,3 +798,15 @@ bash "$paperclip_skill_dir/scripts/paperclip-submit-review.sh" .lavish/options.h
 ```
 
 `--lavish` opens an interactive Lavish session. Paperclip polls it every minute and wakes you with `PAPERCLIP_WAKE_REASON=review_feedback` / `review_approved` / `review_closed`; never run `lavish-axi poll` inside a Paperclip run. After applying feedback, reply with `POST /api/reviews/{reviewId}/messages`. Read `references/reviews.md` for fields, wake reasons, and endpoints.
+
+**Studio Showroom (`/studio` page and persistent creative choices).**
+
+Whenever you produce persistent comparison or choice pages (such as voice auditions, sound-effect libraries, mascot/art-style comparisons, episode hooks, or design decision records), publish them to the **Studio** page (`POST /api/companies/{companyId}/studio`) so they live permanently in `~/.paperclip/instances/default/studio/<slug>/` under a stable `slug` (`voices_sound`, `art_mascots`, `episodes`, `decisions`):
+
+```bash
+bash "$paperclip_skill_dir/scripts/paperclip-publish-studio.sh" .lavish/page.html \
+  --slug voices-sound-auditions --category voices_sound \
+  --title "Voices & Sound Studio Auditions" --lavish
+```
+
+When the user picks voices, art styles, or gates in Studio, Paperclip saves the selection to `~/.paperclip/instances/default/studio/choices.json` and wakes you with `PAPERCLIP_WAKE_REASON=studio_choice`. Read `references/studio.md` for options and schema.

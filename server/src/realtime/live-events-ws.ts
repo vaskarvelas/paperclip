@@ -335,6 +335,7 @@ export function setupLiveEventsWebSocketServer(
       if (event.type === "agent.status") return { ...event, payload: { agentId: payload.agentId, status: payload.status } };
       if (event.type === "external_object.updated") return { ...event, payload: { externalObjectId: payload.externalObjectId } };
       if (event.type === "review.updated") return { ...event, payload: { reviewId: payload.reviewId } };
+      if (event.type === "studio.updated") return { ...event, payload: { studioPageId: payload.studioPageId, slug: payload.slug } };
       if (event.type.startsWith("plugin.")) return event;
       return null;
     }

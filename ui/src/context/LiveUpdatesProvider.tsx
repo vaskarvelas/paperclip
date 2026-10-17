@@ -1775,6 +1775,11 @@ function handleLiveEvent(
     return;
   }
 
+  if (event.type === "studio.updated") {
+    queryClient.invalidateQueries({ queryKey: queryKeys.studio.all(expectedCompanyId) });
+    return;
+  }
+
   if (event.type === "agent.status") {
     queryClient.invalidateQueries({
       queryKey: queryKeys.agents.list(expectedCompanyId),
