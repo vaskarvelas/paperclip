@@ -209,7 +209,7 @@ export {
   boundHeartbeatRunEventPayloadForStorage,
   compactRunLogChunk,
 } from "./heartbeat/run-log.js";
-export { buildPaperclipTaskMarkdown } from "./heartbeat/task-markdown.js";
+export { buildPaperclipTaskMarkdown, ARISTOTELIAN_CAVEMAN_ADHD_DIRECTIVE } from "./heartbeat/task-markdown.js";
 
 import { decisionModelService } from "./decision-models.js";
 import { TASK_QUESTION_GUIDANCE } from "./issue-question-context.js";

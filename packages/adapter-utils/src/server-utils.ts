@@ -4239,6 +4239,9 @@ export const PAPERCLIP_FEEDBACK_SKILL_KEYS = [
   "paperclipai/paperclip/complain",
   "paperclipai/paperclip/suggestion-box",
 ] as const;
+export const ARISTOTELIAN_CAVEMAN_ADHD_SKILL_KEY =
+  "paperclipai/paperclip/aristotelian-caveman-adhd";
+
 
 /**
  * Native Paperclip Runner sessions receive the control-plane contract through
@@ -4303,11 +4306,14 @@ export function resolveLegacyPaperclipDesiredSkillNames(
   );
   if (!operationalEntry) return desiredSkills;
 
-  const feedbackEntries = PAPERCLIP_FEEDBACK_SKILL_KEYS.flatMap((key) => {
+  const mandatoryEntries = [
+    ...PAPERCLIP_FEEDBACK_SKILL_KEYS,
+    ARISTOTELIAN_CAVEMAN_ADHD_SKILL_KEY,
+  ].flatMap((key) => {
     const entry = availableEntries.find((candidate) => candidate.key.trim().toLowerCase() === key);
     return entry ? [entry.key] : [];
   });
-  return Array.from(new Set([operationalEntry.key, ...feedbackEntries, ...desiredSkills]));
+  return Array.from(new Set([operationalEntry.key, ...mandatoryEntries, ...desiredSkills]));
 }
 
 export function writePaperclipSkillSyncPreference(

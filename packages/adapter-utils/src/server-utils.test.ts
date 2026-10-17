@@ -22,6 +22,7 @@ import {
   materializePaperclipSkillCopy,
   PAPERCLIP_OPERATIONAL_SKILL_KEY,
   PAPERCLIP_FEEDBACK_SKILL_KEYS,
+  ARISTOTELIAN_CAVEMAN_ADHD_SKILL_KEY,
   refreshPaperclipWorkspaceEnvForExecution,
   renderPaperclipWakePrompt,
   resolveLegacyPaperclipDesiredSkillNames,
@@ -163,6 +164,17 @@ describe("legacy adapter skill selection", () => {
       expect(resolvePaperclipDesiredSkillNames(config, inventory)).toEqual([]);
     }
     expect(resolveLegacyPaperclipDesiredSkillNames({}, inventory.slice(1))).toEqual([]);
+  });
+
+  it("mounts aristotelian-caveman-adhd mandatory skill for legacy agents when available", () => {
+    const inventory = [
+      operationalEntry,
+      { key: ARISTOTELIAN_CAVEMAN_ADHD_SKILL_KEY, runtimeName: "aristotelian-caveman-adhd" },
+    ];
+    expect(resolveLegacyPaperclipDesiredSkillNames({}, inventory)).toEqual([
+      PAPERCLIP_OPERATIONAL_SKILL_KEY,
+      ARISTOTELIAN_CAVEMAN_ADHD_SKILL_KEY,
+    ]);
   });
 });
 
