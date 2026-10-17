@@ -85,6 +85,9 @@ export function allowsIssueInteractionWake(
   contextSnapshot: Record<string, unknown> | null | undefined,
   allowedWakeReasons: ReadonlySet<string>,
 ): boolean {
+  if (Boolean(contextSnapshot?.interactionId) || contextSnapshot?.reason === "interaction_pending" || contextSnapshot?.wakeReason === "interaction_pending") {
+    return true;
+  }
   const wakeReason = readNonEmptyString(contextSnapshot?.wakeReason);
   if (!wakeReason || !allowedWakeReasons.has(wakeReason)) return false;
   return Boolean(deriveCommentId(contextSnapshot));
