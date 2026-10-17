@@ -44,7 +44,6 @@ import { queryKeys } from "../lib/queryKeys";
 import { attentionBadgeCount } from "../lib/attention";
 import { useInboxBadge } from "../hooks/useInboxBadge";
 import { useReviewsBadge } from "../hooks/useReviewsBadge";
-import { useStudioBadge } from "../hooks/useStudioBadge";
 import { useStreamlinedUiEnabled } from "../hooks/useStreamlinedUiEnabled";
 import { usePublishSharedQueryData, useSharedPollingQuery } from "../hooks/useSharedPolling";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -67,7 +66,6 @@ export function Sidebar({ children }: { children?: ReactNode }) {
   const rail = collapsed && !peeking;
   const inboxBadge = useInboxBadge(selectedCompanyId);
   const reviewsBadge = useReviewsBadge(selectedCompanyId);
-  const studioBadge = useStudioBadge(selectedCompanyId);
   const { data: experimentalSettings } = useQuery({
     queryKey: queryKeys.instance.experimentalSettings,
     queryFn: () => instanceSettingsApi.getExperimental(),
@@ -203,8 +201,6 @@ export function Sidebar({ children }: { children?: ReactNode }) {
             to="/studio"
             label="Studio"
             icon={Palette}
-            badge={studioBadge}
-            badgeLabel="awaiting choice"
           />
           {agentChatEnabled && !chatRail ? <SidebarNavItem to="/chats" label="Chat" icon={MessageCircle} /> : null}
           {showDecisions ? (

@@ -23,7 +23,6 @@ import type { WakeupOptions } from "./heartbeat/run-preparation.js";
 import { createLavishClient, type LavishClient } from "./lavish-client.js";
 import { publishLiveEvent } from "./live-events.js";
 import {
-  injectPaperclipBridge,
   resolveSiblingFile,
   type ReviewActor,
   type ReviewContent,
@@ -511,7 +510,10 @@ export function studioService(db: Db, deps: StudioServiceDeps = {}) {
 
     async readHtml(content: ReviewContent): Promise<string> {
       const raw = content.kind === "inline" ? content.html : await readFile(content.path, "utf8");
-      return injectPaperclipBridge(raw);
+      const bridge = '<script>(function(){window.paperclipStudio={select:function(choice){try{window.parent.postMessage({type:"paperclip:studio-select",choice:String(choice||"")},"*");}catch(e){}}};})();</script>';
+      if (raw.includes("</head>")) return raw.replace("</head>", `${bridge}</head>`);
+      if (raw.includes("<body")) return raw.replace("<body", `${bridge}<body`);
+      return `${bridge}${raw}`;
     },
   };
 }

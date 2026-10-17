@@ -40,7 +40,6 @@ import { queryKeys } from "../lib/queryKeys";
 import { attentionBadgeCount } from "../lib/attention";
 import { useInboxBadge } from "../hooks/useInboxBadge";
 import { useReviewsBadge } from "../hooks/useReviewsBadge";
-import { useStudioBadge } from "../hooks/useStudioBadge";
 import { usePublishSharedQueryData, useSharedPollingQuery } from "../hooks/useSharedPolling";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, SIDEBAR_RAIL_HIDDEN_LABEL } from "../lib/utils";
@@ -59,7 +58,6 @@ export function Sidebar() {
   const rail = collapsed && !peeking;
   const inboxBadge = useInboxBadge(selectedCompanyId);
   const reviewsBadge = useReviewsBadge(selectedCompanyId);
-  const studioBadge = useStudioBadge(selectedCompanyId);
   const { data: experimentalSettings } = useQuery({
     queryKey: queryKeys.instance.experimentalSettings,
     queryFn: () => instanceSettingsApi.getExperimental(),
@@ -179,8 +177,6 @@ export function Sidebar() {
             to="/studio"
             label="Studio"
             icon={Palette}
-            badge={studioBadge}
-            badgeLabel="awaiting choice"
           />
           {showDecisions ? (
             <SidebarNavItem

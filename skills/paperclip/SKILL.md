@@ -790,23 +790,23 @@ answer; verify the provider's gate and publish result before continuing.
 
 **Board Reviews (`/reviews` page and Lavish).**
 
-When you need the board user to look at, choose between, or approve a result before work can progress (HTML result pages, samples, plans, reports, questions), submit it to the **Reviews** page instead of only commenting:
+For draft iterations, visual comparisons needing Lavish annotations, and open decisions (`paperclip-submit-review.sh --lavish`) before work can progress (draft HTML result pages, samples, plans, reports, questions). Submit them to the **Reviews** page:
 
 ```bash
 bash "$paperclip_skill_dir/scripts/paperclip-submit-review.sh" .lavish/options.html \
   --title "Pick a hero layout" --kind sample --lavish --summary "What to look at"
 ```
 
-`--lavish` opens an interactive Lavish session. Paperclip polls it every minute and wakes you with `PAPERCLIP_WAKE_REASON=review_feedback` / `review_approved` / `review_closed`; never run `lavish-axi poll` inside a Paperclip run. After applying feedback, reply with `POST /api/reviews/{reviewId}/messages`. Read `references/reviews.md` for fields, wake reasons, and endpoints.
+`--lavish` opens an interactive Lavish session with annotation chrome. Paperclip polls it every minute and wakes you with `PAPERCLIP_WAKE_REASON=review_feedback` / `review_approved` / `review_closed`; never run `lavish-axi poll` inside a Paperclip run. After applying feedback, reply with `POST /api/reviews/{reviewId}/messages`. Read `references/reviews.md` for fields, wake reasons, and endpoints.
 
-**Studio Showroom (`/studio` page and persistent creative choices).**
+**Studio Catalog (`/studio` page).**
 
-Whenever you produce persistent comparison or choice pages (such as voice auditions, sound-effect libraries, mascot/art-style comparisons, episode hooks, or design decision records), publish them to the **Studio** page (`POST /api/companies/{companyId}/studio`) so they live permanently in `~/.paperclip/instances/default/studio/<slug>/` under a stable `slug` (`voices_sound`, `art_mascots`, `episodes`, `decisions`):
+Strictly for **finalized, polished production assets** (voices, SFX libraries, approved art styles/mascots, rendered episode cuts, design bible) with zero Lavish chrome so the user can select active assets for the next production phase (`paperclip-publish-studio.sh`). Publish them to the **Studio** page (`POST /api/companies/{companyId}/studio`) so they live permanently in `~/.paperclip/instances/default/studio/<slug>/` under a stable `slug` and category (`voices_sound`, `art_mascots`, `episodes`, `decisions`):
 
 ```bash
-bash "$paperclip_skill_dir/scripts/paperclip-publish-studio.sh" .lavish/page.html \
-  --slug voices-sound-auditions --category voices_sound \
-  --title "Voices & Sound Studio Auditions" --lavish
+bash "$paperclip_skill_dir/scripts/paperclip-publish-studio.sh" studio/voices.html \
+  --slug voices-sound --category voices_sound \
+  --title "Voices & Sound Studio Catalog"
 ```
 
-When the user picks voices, art styles, or gates in Studio, Paperclip saves the selection to `~/.paperclip/instances/default/studio/choices.json` and wakes you with `PAPERCLIP_WAKE_REASON=studio_choice`. Read `references/studio.md` for options and schema.
+When the user selects active assets in Studio (via the Studio choice bar or in-page `window.paperclipStudio.select('<choice>')`), Paperclip saves the selection to `~/.paperclip/instances/default/studio/choices.json` and wakes you with `PAPERCLIP_WAKE_REASON=studio_choice`. Read `references/studio.md` for options, schema, and interactive selection.

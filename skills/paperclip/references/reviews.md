@@ -9,6 +9,11 @@ Submit a review whenever you need the user to **look at, choose between, or
 approve** something before the work can progress. Prefer one review per
 decision; group closely related samples into one HTML page.
 
+## Strict Separation: Reviews vs. Studio Catalog
+
+- **Board Reviews (`/reviews` page and Lavish)**: For draft iterations, visual comparisons needing Lavish annotations, and open decisions (`paperclip-submit-review.sh --lavish`). Reviews carry interactive Lavish chrome (commenting tools, visual annotations, feedback threads) for iterative decisions before work can progress.
+- **Studio Catalog (`/studio` page)**: Strictly for **finalized, polished production assets** (voices, SFX libraries, approved art styles/mascots, rendered episode cuts, design bible) with **zero Lavish chrome** so the user can select active assets for the next production phase (`paperclip-publish-studio.sh`). Never use Reviews for finished production asset catalogs, and never publish unfinished drafts or Lavish sessions to Studio.
+
 ## Submit a review
 
 Headers on every call: `Authorization: Bearer $PAPERCLIP_API_KEY`,

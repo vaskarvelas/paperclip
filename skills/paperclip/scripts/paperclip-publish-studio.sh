@@ -11,6 +11,21 @@ Publish or update a persistent Studio page (voices, sound effects, art styles,
 mascot identities, episode gates, design decisions) in the company's Studio hub
 and shared Studio disk directory (~/.paperclip/instances/default/studio/<slug>/).
 
+Strict Separation:
+  - Studio Catalog (/studio): Strictly for finalized, polished production assets
+    with zero Lavish chrome so the user can select active assets for the next
+    production phase.
+  - Board Reviews (/reviews): For draft iterations, visual comparisons needing
+    Lavish annotations, and open decisions (paperclip-submit-review.sh --lavish).
+
+Interactive Studio Selection:
+  In polished HTML pages, trigger selections with zero Lavish chrome via:
+    window.paperclipStudio.select('<choice>')
+  Or embed the fallback bridge:
+    window.paperclipStudio = window.paperclipStudio || { select(choice) {
+      try { window.parent.postMessage({ type: 'paperclip:studio-select', choice: String(choice || '') }, '*'); } catch (e) {}
+    }};
+
 Options:
   --slug <slug>           Required stable identifier (e.g. voices-sound, art-styles-mascots)
   --title <title>         Required display title
@@ -23,8 +38,16 @@ Options:
   --choices-json <json>   JSON array of {id, label, group?, description?} options
   --status <status>       awaiting_choice | choice_made | reference
   --pinned-order <int>    Sort priority (lower appears first, default 0)
-  --lavish                Also open/ensure an interactive Lavish session
+  --lavish                Compatibility flag (omit for polished Studio assets; Studio has zero Lavish chrome)
   --json                  Print raw JSON response
+
+Example:
+  paperclip-publish-studio.sh studio/voices.html \
+    --slug voices-sound \
+    --category voices_sound \
+    --title "Voices & Sound Studio Catalog" \
+    --summary "Finalized narration voices and audio palette." \
+    --choices-json '[{"id":"af_heart","label":"Kokoro · af_heart","group":"Narration Voices"}]'
 EOF
 }
 

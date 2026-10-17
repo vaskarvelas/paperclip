@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -10,8 +10,6 @@ import {
   Palette,
   Film,
   Compass,
-  Send,
-  Sparkles,
 } from "lucide-react";
 import type {
   StudioCategoryFilter,
@@ -34,13 +32,12 @@ import { MarkdownBody } from "../components/MarkdownBody";
 import { Link, useNavigate, useParams } from "@/lib/router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 const SELECTION_PRESENTATION: Record<StudioSelectionStatus, { label: string; tone: string }> = {
-  awaiting_choice: { label: "Awaiting choice", tone: "warning" },
-  choice_made: { label: "Choice saved", tone: "succeeded" },
-  reference: { label: "Reference", tone: "archived" },
+  awaiting_choice: { label: "Ready to select", tone: "info" },
+  choice_made: { label: "Active for next phase", tone: "succeeded" },
+  reference: { label: "Canonical reference", tone: "archived" },
 };
 
 const CATEGORY_LABELS: Record<StudioPageCategory, string> = {
@@ -101,7 +98,7 @@ export function Studio() {
         <div className="min-w-0 space-y-1">
           <h1 className="text-xl font-semibold">Studio</h1>
           <p className="text-sm text-muted-foreground">
-            Persistent showroom for voices, sound effects, art styles, mascot identities, episode gates, and design decisions. Pick your choices here and Paperclip saves them for every agent.
+            Polished production catalog of finalized voices, sound effects, art styles, mascots, episode cuts, and design decisions. Select your active assets for the next production phase.
           </p>
         </div>
         {studioRootDir ? (
@@ -215,68 +212,32 @@ function StudioPageDetail({ page }: { page: StudioPageItem }) {
   const { pushToast } = useToastActions();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [selectedChoices, setSelectedChoices] = useState<string[]>(page.selectedChoices);
-  const [choiceNotes, setChoiceNotes] = useState<string>(page.choiceNotes ?? "");
+  const selectedChoicesRef = useRef(selectedChoices);
+  selectedChoicesRef.current = selectedChoices;
   const presentation = SELECTION_PRESENTATION[page.selectionStatus];
-  const agentName = page.agent?.name ?? "the responsible agent";
 
   useEffect(() => {
     setSelectedChoices(page.selectedChoices);
-    setChoiceNotes(page.choiceNotes ?? "");
-  }, [page.id, page.updatedAt, page.selectedChoices, page.choiceNotes]);
-
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return;
-      const payload = event.data as {
-        type?: string;
-        text?: string;
-        data?: { sampleIds?: string[]; answer?: string; notes?: string; question?: string } | null;
-      } | null;
-      if (!payload || payload.type !== "paperclip:lavish-prompt") return;
-      const incomingIds = Array.isArray(payload.data?.sampleIds)
-        ? payload.data!.sampleIds.map(String)
-        : payload.data?.answer
-          ? [String(payload.data.answer)]
-          : payload.text
-            ? [String(payload.text)]
-            : [];
-      if (incomingIds.length > 0) {
-        setSelectedChoices((prev) => [...new Set([...prev, ...incomingIds])]);
-      }
-      if (payload.data?.notes) {
-        setChoiceNotes((prev) => (prev ? `${prev}\n${payload.data!.notes}` : String(payload.data!.notes)));
-      }
-      pushToast({
-        title: "Selection captured from page",
-        body: "Click 'Save Choice & Wake Agent' above to persist your decision.",
-        tone: "success",
-      });
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [pushToast]);
+  }, [page.id, page.updatedAt, page.selectedChoices]);
 
   const saveChoice = useMutation({
-    mutationFn: (notifyAgent: boolean) =>
+    mutationFn: (nextChoices: string[]) =>
       studioApi.updateChoice(page.id, {
-        selectedChoices,
-        choiceNotes: choiceNotes.trim() || null,
-        selectionStatus:
-          selectedChoices.length > 0 || choiceNotes.trim()
-            ? "choice_made"
-            : page.selectionStatus === "reference"
-              ? "reference"
-              : "awaiting_choice",
-        notifyAgent,
+        selectedChoices: nextChoices,
+        choiceNotes: null,
+        selectionStatus: nextChoices.length > 0 ? "choice_made" : "awaiting_choice",
+        notifyAgent: false,
       }),
-    onSuccess: (next, notifyAgent) => {
+    onSuccess: (next) => {
+      setSelectedChoices(next.selectedChoices);
       queryClient.setQueryData(queryKeys.studio.detail(page.companyId, page.id), next);
       void queryClient.invalidateQueries({ queryKey: queryKeys.studio.all(page.companyId) });
       pushToast({
-        title: "Studio choice saved",
-        body: notifyAgent && page.agent
-          ? `Saved to Studio and woke ${agentName} with your choice.`
-          : "Saved to the shared Studio choices manifest.",
+        title: "Studio selection updated",
+        body:
+          next.selectedChoices.length > 0
+            ? `Active for next phase: ${next.selectedChoices.join(" · ")}`
+            : "Selection cleared.",
         tone: "success",
       });
     },
@@ -288,11 +249,31 @@ function StudioPageDetail({ page }: { page: StudioPageItem }) {
       }),
   });
 
-  const toggleChoice = (labelOrId: string) => {
-    setSelectedChoices((prev) =>
-      prev.includes(labelOrId) ? prev.filter((item) => item !== labelOrId) : [...prev, labelOrId],
-    );
-  };
+  const toggleChoice = useCallback(
+    (choice: string) => {
+      const matchedOpt = page.choices.find((opt) => opt.label === choice || opt.id === choice);
+      const resolved = matchedOpt?.label ?? choice;
+      const current = selectedChoicesRef.current;
+      const isSelected = current.includes(resolved) || (Boolean(matchedOpt?.id) && current.includes(matchedOpt!.id));
+      const nextChoices = isSelected
+        ? current.filter((item) => item !== resolved && item !== matchedOpt?.id)
+        : [...current, resolved];
+      setSelectedChoices(nextChoices);
+      saveChoice.mutate(nextChoices);
+    },
+    [page.choices, saveChoice],
+  );
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return;
+      if (event.data?.type === "paperclip:studio-select" && event.data?.choice) {
+        toggleChoice(String(event.data.choice));
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [toggleChoice]);
 
   const groupedChoices: Record<string, StudioChoiceOption[]> = {};
   for (const option of page.choices) {
@@ -302,11 +283,6 @@ function StudioPageDetail({ page }: { page: StudioPageItem }) {
   }
 
   const previewSrc = page.contentUrl ? `${page.contentUrl}?v=${encodeURIComponent(page.updatedAt)}` : null;
-
-  const onSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    saveChoice.mutate(Boolean(page.agent));
-  };
 
   return (
     <article className="space-y-4">
@@ -333,11 +309,6 @@ function StudioPageDetail({ page }: { page: StudioPageItem }) {
                 {page.issue.identifier}
               </Link>
             ) : null}
-            {page.reviewId ? (
-              <Link to={`/reviews/${page.reviewId}`} className="hover:underline">
-                Linked review
-              </Link>
-            ) : null}
             <span>· updated {relativeTime(page.updatedAt)}</span>
           </div>
         </div>
@@ -347,13 +318,6 @@ function StudioPageDetail({ page }: { page: StudioPageItem }) {
             <Button asChild size="sm" variant="outline">
               <a href={page.externalUrl} target="_blank" rel="noreferrer">
                 Open Live Workbench <ExternalLink />
-              </a>
-            </Button>
-          ) : null}
-          {page.lavishSessionUrl ? (
-            <Button asChild size="sm" variant="outline">
-              <a href={page.lavishSessionUrl} target="_blank" rel="noreferrer">
-                <Sparkles /> Open in Lavish <ExternalLink />
               </a>
             </Button>
           ) : null}
@@ -373,88 +337,64 @@ function StudioPageDetail({ page }: { page: StudioPageItem }) {
         </div>
       ) : null}
 
-      <form onSubmit={onSubmit} className="space-y-3 rounded-lg border border-border bg-card p-4" aria-label="Studio choice selector">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="space-y-0.5">
-            <h3 className="text-sm font-semibold">Your Persistent Choice</h3>
-            <p className="text-xs text-muted-foreground">
-              Click options below (or use controls inside the page) to pick your preferred voices, art styles, or production gate.
-            </p>
-          </div>
-          {selectedChoices.length > 0 ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={() => setSelectedChoices([])}
-            >
-              Clear ({selectedChoices.length})
-            </Button>
-          ) : null}
-        </div>
-
-        {Object.entries(groupedChoices).map(([groupName, options]) => (
-          <div key={groupName} className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">{groupName}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {options.map((option) => {
-                const value = option.label;
-                const active = selectedChoices.includes(value) || selectedChoices.includes(option.id);
-                return (
-                  <Button
-                    key={option.id}
-                    type="button"
-                    size="xs"
-                    variant={active ? "default" : "outline"}
-                    aria-pressed={active}
-                    title={option.description ?? undefined}
-                    onClick={() => toggleChoice(value)}
-                  >
-                    {active ? <Check className="h-3 w-3" /> : null}
-                    {option.label}
-                  </Button>
-                );
-              })}
+      {page.choices.length > 0 ? (
+        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="space-y-0.5">
+              <h3 className="text-sm font-semibold">Active Selection for Next Phase</h3>
+              <p className="text-xs text-muted-foreground">
+                Select your active assets for the next production phase.
+              </p>
             </div>
-          </div>
-        ))}
-
-        {selectedChoices.length > 0 ? (
-          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
-            <span className="font-semibold">Selected: </span>
-            <span>{selectedChoices.join(" · ")}</span>
-          </div>
-        ) : null}
-
-        <Textarea
-          value={choiceNotes}
-          onChange={(event) => setChoiceNotes(event.target.value)}
-          placeholder={`Optional notes or direction for ${agentName} (e.g., "Use af_heart for narration, keep Corvid A & Lamp D for final test")…`}
-          rows={2}
-        />
-
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">
-            {page.chosenAt ? `Last saved ${relativeTime(page.chosenAt)}` : "No choice saved yet"}
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            {page.agent ? (
+            {selectedChoices.length > 0 ? (
               <Button
                 type="button"
-                variant="outline"
-                size="sm"
-                disabled={saveChoice.isPending}
-                onClick={() => saveChoice.mutate(false)}
+                variant="ghost"
+                size="xs"
+                onClick={() => {
+                  setSelectedChoices([]);
+                  saveChoice.mutate([]);
+                }}
               >
-                Save only
+                Clear selection
               </Button>
             ) : null}
-            <Button type="submit" size="sm" disabled={saveChoice.isPending}>
-              <Send /> {page.agent ? `Save Choice & Wake ${page.agent.name}` : "Save Choice"}
-            </Button>
           </div>
+
+          {Object.entries(groupedChoices).map(([groupName, options]) => (
+            <div key={groupName} className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">{groupName}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {options.map((option) => {
+                  const value = option.label;
+                  const active = selectedChoices.includes(value) || selectedChoices.includes(option.id);
+                  return (
+                    <Button
+                      key={option.id}
+                      type="button"
+                      size="xs"
+                      variant={active ? "default" : "outline"}
+                      aria-pressed={active}
+                      title={option.description ?? undefined}
+                      onClick={() => toggleChoice(value)}
+                    >
+                      {active ? <Check className="h-3 w-3" /> : null}
+                      {option.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {selectedChoices.length > 0 ? (
+            <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+              <span className="font-semibold">Selected: </span>
+              <span>{selectedChoices.join(" · ")}</span>
+            </div>
+          ) : null}
         </div>
-      </form>
+      ) : null}
 
       {previewSrc ? (
         <div className="overflow-hidden rounded-lg border border-border">
