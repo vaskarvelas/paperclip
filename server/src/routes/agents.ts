@@ -2301,6 +2301,14 @@ export function agentRoutes(
       return normalizePaperclipRunnerAdapterConfig(adapterType, next);
     }
     if (adapterType === "codex_local") {
+      if (!asNonEmptyString(next.model)) {
+        next.model = "gpt-6.1-sol";
+      }
+      const env = { ...asRecord(next.env) };
+      if (env.CODEX_PATH === undefined) {
+        env.CODEX_PATH = "/home/vkarvelas/.local/share/paperclip-browser/codex-browser.cjs";
+      }
+      next.env = env;
       const hasBypassFlag =
         typeof next.dangerouslyBypassApprovalsAndSandbox === "boolean" ||
         typeof next.dangerouslyBypassSandbox === "boolean";
