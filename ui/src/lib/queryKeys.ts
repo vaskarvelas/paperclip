@@ -584,6 +584,13 @@ export const queryKeys = {
     byAgent: (companyId: string, agentId: string) =>
       ["artifacts", companyId, "by-agent", agentId] as const,
   },
+  reviews: {
+    /** Prefix for every review query of a company (live-event invalidation). */
+    all: (companyId: string) => ["reviews", companyId] as const,
+    list: (companyId: string, status: string) => ["reviews", companyId, "list", status] as const,
+    summary: (companyId: string) => ["reviews", companyId, "summary"] as const,
+    detail: (companyId: string, reviewId: string) => ["reviews", companyId, "detail", reviewId] as const,
+  },
   budgets: {
     overview: (companyId: string) =>
       ["budgets", "overview", companyId] as const,

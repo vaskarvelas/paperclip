@@ -104,6 +104,8 @@ export interface Config {
   feedbackExportBackendToken: string | undefined;
   heartbeatSchedulerEnabled: boolean;
   heartbeatSchedulerIntervalMs: number;
+  /** Lavish review feedback poll cadence; 0 disables the poller. */
+  reviewLavishPollIntervalMs: number;
   companyDeletionEnabled: boolean;
   telemetryEnabled: boolean;
   announcementsEnabled: boolean;
@@ -411,6 +413,9 @@ export function loadConfig(): Config {
     feedbackExportBackendToken,
     heartbeatSchedulerEnabled: process.env.HEARTBEAT_SCHEDULER_ENABLED !== "false",
     heartbeatSchedulerIntervalMs: Math.max(10000, Number(process.env.HEARTBEAT_SCHEDULER_INTERVAL_MS) || 30000),
+    reviewLavishPollIntervalMs: process.env.PAPERCLIP_REVIEW_POLL_INTERVAL_MS === "0"
+      ? 0
+      : Math.max(5000, Number(process.env.PAPERCLIP_REVIEW_POLL_INTERVAL_MS) || 60_000),
     companyDeletionEnabled,
     telemetryEnabled: fileConfig?.telemetry?.enabled ?? true,
     announcementsEnabled: process.env.PAPERCLIP_ANNOUNCEMENTS_ENABLED !== "false",

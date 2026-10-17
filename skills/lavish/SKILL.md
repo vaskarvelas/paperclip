@@ -17,6 +17,24 @@ You do not need lavish-axi installed globally - invoke it with `npx -y lavish-ax
 If lavish-axi output shows a follow-up command starting with `lavish-axi`, run it as `npx -y lavish-axi ...` instead.
 In restricted subprocess sandboxes, CI, or agent harnesses where `npx -y` exits opaquely (for example with status 216), use an already-installed copy directly: `node "$(npm root)/lavish-axi/dist/cli.mjs" <html-file>` for a local install, `node "$(npm root -g)/lavish-axi/dist/cli.mjs" <html-file>` for a global install, or the bare `lavish-axi <html-file>` bin after installing once.
 
+## Inside a Paperclip heartbeat run
+
+When `PAPERCLIP_API_URL` is set, deliver Lavish artifacts through the board's
+**Reviews** page instead of the poll loop below. Paperclip polls every open
+Lavish review once a minute, wakes you with the feedback, and shows your
+replies in the Lavish conversation, so no run has to stay alive waiting.
+
+1. Build the HTML artifact (default `.lavish/<name>.html`) following the
+   design guidance and playbooks below.
+2. Submit it: `bash "$paperclip_skill_dir/scripts/paperclip-submit-review.sh" .lavish/<name>.html --title "<decision needed>" --lavish`
+   (`paperclip_skill_dir` is the installed `paperclip` skill directory).
+3. Do **not** run `lavish-axi poll` or `lavish-axi end`, and end your run normally.
+4. When woken with `PAPERCLIP_WAKE_REASON=review_feedback`, edit the same file
+   in place and reply with `POST /api/reviews/{reviewId}/messages`; see the
+   `paperclip` skill's `references/reviews.md`.
+
+The steps under **Workflow** apply only outside Paperclip runs.
+
 ## Request
 
 $ARGUMENTS

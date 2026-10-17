@@ -787,3 +787,14 @@ provider, and keep the agent assigned with `continuationPolicy: "wake_assignee"`
 so the answer resumes verification. A handoff comment asking the user to comment
 back or reassign the task is not a confirmation card. The card records the user's
 answer; verify the provider's gate and publish result before continuing.
+
+**Board Reviews (`/reviews` page and Lavish).**
+
+When you need the board user to look at, choose between, or approve a result before work can progress (HTML result pages, samples, plans, reports, questions), submit it to the **Reviews** page instead of only commenting:
+
+```bash
+bash "$paperclip_skill_dir/scripts/paperclip-submit-review.sh" .lavish/options.html \
+  --title "Pick a hero layout" --kind sample --lavish --summary "What to look at"
+```
+
+`--lavish` opens an interactive Lavish session. Paperclip polls it every minute and wakes you with `PAPERCLIP_WAKE_REASON=review_feedback` / `review_approved` / `review_closed`; never run `lavish-axi poll` inside a Paperclip run. After applying feedback, reply with `POST /api/reviews/{reviewId}/messages`. Read `references/reviews.md` for fields, wake reasons, and endpoints.

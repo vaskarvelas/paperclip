@@ -17,6 +17,7 @@ Agent access: [companion](../agent-access-map/documents-artifacts.md).
 - `attachments`: upload, preview, and download allowed files with company access checks.
 - `work-products`: link deliverables to their source task, resource, and review context.
 - `library`: search, filter, group, and open artifact stacks.
+- `reviews`: review agent-submitted results, samples and questions, approve or close them, and converse with the responsible agent (Paperclip or Lavish feedback).
 
 ## How to get to it (user POV)
 
@@ -34,6 +35,10 @@ Upload files** or drop files anywhere in that panel. On mobile, open
 ### `artifact-library`
 
 Open `/artifacts` and its grouping, search, and media controls.
+
+### `review-queue`
+
+Open **Reviews** in the left sidebar (`/reviews`); its badge counts reviews waiting on you. Select a review to see the sandboxed result, open its Lavish session, approve, close, or send feedback.
 
 ## Driving it with Playwright and the Paperclip CLI
 
@@ -62,6 +67,12 @@ Test an inaccessible user/company and explicit missing workspace-only resources.
 Automated: [artifact page](../../ui/src/pages/Artifacts.test.tsx) covers grouping, search requests, and pagination using mocks.
 
 Manual: Find the task’s output through search and grouping, open its stack, page through results, and reload a direct stack link. Confirm the same file/content appears as from the task.
+
+### `review-queue`
+
+Automated: [review service](../../server/src/__tests__/reviews-service.test.ts) covers Lavish feedback ingestion and wakes, queued reply delivery after a Lavish restart, board-only approval, and content path containment.
+
+Manual: Have an agent submit an HTML review with `--lavish`. Confirm the sidebar badge increments, the preview renders, and **Open in Lavish** opens the session. Annotate and send in Lavish; within a minute (or **Check Lavish now**) the feedback appears in the thread, the review moves to **Agent working**, and the agent wakes. After the agent replies, confirm the reply shows in Lavish and the review returns to **Needs review**. Approve and confirm the agent wakes with `review_approved`.
 
 ## Gotchas
 

@@ -257,9 +257,9 @@ export function Agents() {
   const { isMobile } = useSidebar();
   const pathSegment = location.pathname.split("/").pop() ?? "all";
   const requestedTab: FilterTab = isFilterTab(pathSegment) ? pathSegment : "all";
-  const [view, setView] = useState<"list" | "org">("org");
+  const [view, setView] = useState<"list" | "teams" | "org">("org");
   const forceListView = isMobile;
-  const effectiveView: "list" | "org" = forceListView ? "list" : view;
+  const effectiveView: "list" | "teams" | "org" = forceListView ? "list" : view;
 
   const { data: instanceSettings } = useQuery({
     queryKey: queryKeys.instance.settings,

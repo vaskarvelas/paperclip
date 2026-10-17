@@ -1770,6 +1770,11 @@ function handleLiveEvent(
     return;
   }
 
+  if (event.type === "review.updated") {
+    queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all(expectedCompanyId) });
+    return;
+  }
+
   if (event.type === "agent.status") {
     queryClient.invalidateQueries({
       queryKey: queryKeys.agents.list(expectedCompanyId),

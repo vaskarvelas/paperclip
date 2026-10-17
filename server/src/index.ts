@@ -1,5 +1,6 @@
 import { timeStartupRecovery } from "./startup-recovery-timing.js";
 import { skillSourceSyncService } from "./services/skill-source-sync.js";
+import { reviewService } from "./services/reviews.js";
 import {
   SKILL_VERSION_RETENTION_INTERVAL_MS,
   SKILL_VERSION_RETENTION_STARTUP_DELAY_MS,
@@ -1231,6 +1232,26 @@ async function startServerWithDatabaseTeardown(
   const skillSourceSyncInterval = setInterval(sweepSkillSources, 5000);
   skillSourceSyncInterval.unref?.();
   sweepSkillSources();
+  // Lavish-backed reviews: deliver agent replies and collect user feedback on a
+  // fixed cadence with zero-timeout polls, never holding a long poll open.
+  const reviewPoller = reviewService(db, { wakeAgent: accountingHeartbeat.wakeup });
+  let reviewPollInFlight = false;
+  const sweepReviewFeedback = () => {
+    if (reviewPollInFlight || isIdleTaskDrainActive() || heartbeatSchedulerStopped || isWarmStandby()) return;
+    reviewPollInFlight = true;
+    trackHeartbeatSchedulerWork(reviewPoller.pollLavish()
+      .then((result) => {
+        if (result.feedbackBatches > 0 || result.repliesDelivered > 0 || result.errors > 0) {
+          logger.info(result, "review lavish poll");
+        }
+      })
+      .catch((err) => logger.error({ err }, "review lavish poll failed"))
+      .finally(() => { reviewPollInFlight = false; }));
+  };
+  const reviewPollInterval = config.reviewLavishPollIntervalMs > 0
+    ? setInterval(sweepReviewFeedback, config.reviewLavishPollIntervalMs)
+    : undefined;
+  reviewPollInterval?.unref?.();
   // Materialized skill versions are disk caches of version rows. The sweep is
   // single-flight, bounded per tick, and stops between removals on shutdown or
   // idle drain. The first sweep runs after startup without delaying readiness.
@@ -2014,6 +2035,7 @@ async function startServerWithDatabaseTeardown(
     await systemdNotify(["--stopping", `--status=Stopping after ${signal}`]);
     heartbeatSchedulerStopped = true;
     clearInterval(skillSourceSyncInterval);
+    clearInterval(reviewPollInterval);
     clearInterval(skillVersionRetentionInterval);
     clearTimeout(skillVersionRetentionStartup);
     clearTimeout(skillVersionRetentionContinuation);
