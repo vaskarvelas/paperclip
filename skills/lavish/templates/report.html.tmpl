@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    --bg:#0f1115; --panel:#161a22; --muted:#8892a0; --fg:#e6edf3;
+    --accent:#6ea8fe; --warn:#f0b429; --err:#ff6b6b; --ok:#3fb950;
+    --border:#232936;
+  }
+  html,body{background:var(--bg);color:var(--fg);margin:0;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}
+  a{color:var(--accent)}
+  header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  header h1{margin:0;font-size:18px}
+  header .meta{color:var(--muted);font-size:12px}
+  nav{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--border);padding:8px 24px;z-index:5;display:flex;gap:12px;flex-wrap:wrap;font-size:12px}
+  nav a{text-decoration:none;color:var(--muted)}
+  nav a:hover{color:var(--fg)}
+  main{padding:24px;max-width:1400px;margin:0 auto}
+  section{margin:32px 0}
+  h2{border-bottom:1px solid var(--border);padding-bottom:6px}
+  .tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;margin-right:6px;font-weight:600;letter-spacing:.5px}
+  .tag.VERIFIED{background:#0f3a1a;color:var(--ok)}
+  .tag.INFERRED{background:#3a2f0f;color:var(--warn)}
+  .tag.UNVERIFIED{background:#3a1a1a;color:var(--err)}
+  .tag.ASSUMPTION{background:#1a2a3a;color:var(--accent)}
+  .eref{color:var(--accent);text-decoration:none;font-family:ui-monospace,monospace;font-size:12px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin:16px 0;overflow:hidden}
+  .card > .head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .card > .head .path{font-family:ui-monospace,monospace;font-size:12px}
+  .card > .head .sym{color:var(--accent);font-family:ui-monospace,monospace;font-size:12px}
+  .card > .head .prov{margin-left:auto;color:var(--muted);font-size:11px;font-family:ui-monospace,monospace}
+  .card > .head .prov.dirty{color:var(--warn)}
+  .card > .head .prov.mismatch{color:var(--err)}
+  .card > .expl{padding:8px 14px;color:var(--muted);font-size:13px;border-bottom:1px solid var(--border)}
+  *{box-sizing:border-box;min-width:0}
+  p,li,.head,td{overflow-wrap:anywhere}
+  .code,[data-mapping-code]{padding:8px 14px;min-width:0;max-height:360px;overflow:auto}
+  details,label,output{display:block;padding:8px 14px}
+  output{white-space:pre-wrap}
+  input{background:var(--panel);color:var(--fg);border:1px solid var(--muted);padding:6px}
+  textarea{width:100%;height:260px;background:var(--panel);color:var(--fg);white-space:pre;overflow:auto}
+  table.mapping{table-layout:fixed}
+  :target{scroll-margin-top:130px;outline:2px solid var(--accent)}
+  @media(max-width:700px){main{padding:12px}.repos{grid-template-columns:minmax(0,1fr)}table.mapping tr,table.mapping td,table.mapping th{display:block;width:100%!important}nav{position:static}}
+  .card > .code .pierre-diffs-file{min-width:0}
+  .card > .actions{padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid var(--border);background:#12161d}
+  button{background:#232936;color:var(--fg);border:1px solid var(--border);padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer}
+  button:hover{background:#2c3444}
+  .repos{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .repo{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px}
+  .repo .name{font-weight:600}
+  .repo .path{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);word-break:break-all}
+  .repo .git{font-family:ui-monospace,monospace;font-size:11px;margin-top:4px}
+  .repo .git.dirty{color:var(--warn)}
+  table.mapping{width:100%;border-collapse:collapse;margin-top:12px}
+  table.mapping th, table.mapping td{border:1px solid var(--border);padding:8px;vertical-align:top;text-align:left;font-size:13px}
+  table.mapping th{background:#12161d;color:var(--muted);font-weight:600}
+  table.mapping td.side{width:42%;min-width:0}
+  .kind{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
+  .kind.direct{background:#0f3a1a;color:var(--ok)}
+  .kind.different{background:#3a2f0f;color:var(--warn)}
+  .kind.dependency{background:#1a2a3a;color:var(--accent)}
+  ul.claims li{margin:6px 0}
+  .flow svg{max-width:100%;height:auto;background:var(--panel);border:1px solid var(--border);border-radius:6px}
+  .flow g.node{cursor:pointer}
+  .flow g.node:hover rect{stroke:var(--accent)}
+  .banner{background:#3a1a1a;color:var(--err);padding:8px 12px;border-radius:4px;margin:8px 0;display:none;font-size:12px}
+  .banner.on{display:block}
+  code.inline{background:#12161d;padding:1px 4px;border-radius:3px;font-family:ui-monospace,monospace;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>__TITLE__</h1>
+  <span class="meta">Generated __GENERATED_AT__ · Lavish investigation report</span>
+</header>
+<nav>
+  <a href="#summary">Summary</a><a href="#problem">Problem</a>
+  <a href="#repos">Repositories</a><a href="#flow">Flow</a>
+  <a href="#evidence">Evidence</a><a href="#mapping">Mapping</a>
+  <a href="#proposed">Proposed</a><a href="#assumptions">Assumptions</a>
+  <a href="#unverified">Unverified</a><a href="#risks">Risks</a>
+  <a href="#questions">Questions</a><a href="#likely">Files likely</a>
+  <a href="#inspected">Inspected</a><a href="#oos">Out of scope</a>
+  <button id="ws-btn" style="margin-left:auto">Open Investigation Workspace</button>
+  <span id="launch-status" role="status">Navigation helper not connected.</span>
+</nav>
+<main>
+
+<section id="summary"><h2>Summary</h2>__SUMMARY__</section>
+<section id="problem"><h2>Problem</h2>__PROBLEM__</section>
+
+<section id="repos"><h2>Repositories</h2><div class="repos">__REPOS__</div></section>
+
+<section id="flow"><h2>Flow</h2><div class="flow">__FLOW_SVG__</div></section>
+
+<section id="evidence"><h2>Evidence</h2>__EVIDENCE__</section>
+
+<section id="mapping"><h2>Source → target mapping</h2>__MAPPING__</section>
+
+<section id="proposed"><h2>Proposed changes</h2>__PROPOSED__</section>
+<section id="assumptions"><h2>Assumptions</h2>__ASSUMPTIONS__</section>
+<section id="unverified"><h2>Unverified</h2>__UNVERIFIED__</section>
+<section id="risks"><h2>Risks</h2>__RISKS__</section>
+<section id="questions"><h2>Open questions</h2>__QUESTIONS__</section>
+<section id="likely"><h2>Files likely to change</h2>__LIKELY__</section>
+<section id="inspected"><h2>Inspected, not changed</h2>__INSPECTED__</section>
+<section id="oos"><h2>Out of scope</h2>__OOS__</section>
+
+</main>
+
+<script id="lavish-report-data" type="application/json">__DATA_JSON__</script>
+<script type="module">
+  const data = JSON.parse(document.getElementById("lavish-report-data").textContent);
+  let File;
+  const opts = { theme:{light:"github-light",dark:"github-dark"}, themeType:"dark", overflow:"scroll", disableLineNumbers:true };
+
+  function langFromPath(p){
+    const m = /\.([a-zA-Z0-9]+)$/.exec(p||""); if(!m) return "text";
+    return {ts:"ts",tsx:"tsx",js:"js",jsx:"jsx",mjs:"js",cjs:"js",py:"py",md:"md",json:"json",html:"html",css:"css",cs:"csharp",go:"go",rs:"rust",sh:"bash",yaml:"yaml",yml:"yaml"}[m[1].toLowerCase()]||m[1];
+  }
+  function renderFile(container, path, contents){
+    if(File) new File(opts).render({containerWrapper:container, file:{name:path, contents}});
+    else {const t=document.createElement('textarea');t.readOnly=true;t.value=contents;t.setAttribute('aria-label',path+' source (offline fallback)');container.append(t);}
+  }
+  async function renderCode(){
+  try { ({File}=await import('https://esm.sh/@pierre/diffs@1.2.10?bundle')); }
+  catch(e){document.getElementById('launch-status').textContent='Syntax viewer unavailable: showing selectable plain-text fallback.';}
+  document.querySelectorAll("[data-evidence-code]").forEach(el=>{
+    const id = el.dataset.evidenceCode; const ev = data.evidence[id]; if(!ev) return;
+    renderFile(el, ev.path, ev.snippet);
+  });
+  document.querySelectorAll("[data-mapping-code]").forEach(el=>{
+    const id = el.dataset.mappingCode; const ev = data.evidence[id]; if(!ev) return;
+    renderFile(el, ev.path, ev.snippet);
+  });
+  document.querySelectorAll('[data-context-code]').forEach(el=>{const ev=data.evidence[el.dataset.contextCode];renderFile(el,ev.path,ev.context);});
+  }
+  void renderCode();
+  document.querySelectorAll('[data-search]').forEach(input=>input.addEventListener('input',()=>{
+    const ev=data.evidence[input.dataset.search], q=input.value.toLowerCase();
+    const lines=ev.context.split('\n').flatMap((s,i)=>q && s.toLowerCase().includes(q)?[`${ev.context_start+i}: ${s}`]:[]);
+    document.querySelector(`[data-matches="${input.dataset.search}"]`).textContent=q?(lines.join('\n')||'No matches in captured context'):'';
+  }));
+
+  async function opener(pathOrId, kind){
+    const o = data.opener;
+
+    if (!o || !o.url) return false;
+    try {
+      const r = await fetch(o.url + "/" + kind, {
+        method:"POST",
+        headers:{"content-type":"application/json","x-lavish-token":o.token},
+        body: JSON.stringify(kind==="workspace"?{}:{id:pathOrId}),
+      });
+      document.getElementById('launch-status').textContent=r.ok?'VS Code command accepted.':'Navigation helper rejected the request.';
+      return r.ok;
+    } catch (e) { return false; }
+  }
+  document.querySelectorAll("[data-open]").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const id = btn.dataset.open;
+      const ok = await opener(id, "open");
+      if(!ok){
+        document.getElementById('launch-status').textContent='Start lavish_opener.py for this report. No new VS Code window was requested.';
+      }
+    });
+  });
+  document.getElementById("ws-btn").addEventListener("click", async ()=>{
+    const ok = await opener(null, "workspace");
+    if(!ok) document.getElementById('launch-status').textContent='Start lavish_opener.py for this report, then retry.';
+  });
+  document.querySelectorAll("[data-copy]").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      const [id, kind] = btn.dataset.copy.split("|");
+      const ev = data.evidence[id];
+      const v = kind==="path"?ev.abs_path : kind==="symbol"?ev.symbol : ev.snippet;
+      try{
+        const t=document.createElement('textarea');t.value=v;t.style.position='fixed';t.style.top='-1000px';document.body.append(t);t.select();
+        const copied=document.execCommand('copy');t.remove();
+        if(!copied)await navigator.clipboard.writeText(v);
+        btn.textContent='Copied ✓';
+      }catch(e){btn.textContent='Clipboard unavailable';}
+      setTimeout(()=>btn.textContent = "Copy "+kind, 900);
+    });
+  });
+
+  // mismatch check: ask opener to hash live files
+  (async ()=>{
+    const o = data.opener; if(!o||!o.url) return;
+    try {
+      const r = await fetch(o.url + "/verify",{method:"POST",headers:{"content-type":"application/json","x-lavish-token":o.token},body:"{}"});
+      if(!r.ok) return;
+      const j = await r.json();
+      for (const [id, live_sha] of Object.entries(j.hashes||{})){
+        const ev = data.evidence[id]; if(!ev) continue;
+        if(live_sha !== ev.sha256){
+          const badge = document.querySelector('[data-prov="'+id+'"]');
+          if(badge){ badge.classList.add("mismatch"); badge.title = "Live file hash differs from captured snippet"; badge.textContent += " ⚠ mismatch"; }
+          const banner = document.querySelector('[data-banner="'+id+'"]');
+          if(banner){ banner.classList.add("on"); banner.textContent = "Live source hash differs from the captured snippet — the evidence may be stale."; }
+        }
+      }
+    } catch(e){}
+  })();
+</script>
+</body>
+</html>
