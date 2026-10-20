@@ -42,7 +42,8 @@ The MCP client authenticates with a `full-access` MCP client token (`rtc: "full-
 `t3-job launch` defaults to `--mode full-access` and automatically registers any local directory via `t3_project_create` if not already registered.
 
 - Preflight token check: `t3-job token-check` (verifies full-access token validity against T3 Code)
-- Issue browser pairing code: `t3-job pair` (issues a pairing code via `t3 auth pairing create --json` if a browser session ever needs to pair with `http://127.0.0.1:3773`)
+- Issue browser pairing code: `t3-job pair [--reveal]` (issues a pairing code via `t3 auth pairing create --json` and prints the exact `#token=` pairing URL; masked by default to prevent secret leaks in logs)
+- Pre-pair browser profiles: `t3-job pair-browser [agentId|profilePath]` (uses headless Chromium to exchange the pairing code and persist `t3_session_<port>` cookies to an agent profile, e.g. Chief of Stuff)
 - Check projects: `t3-job projects`
 - Check allowed models: `t3-job models`
 - Launch job: `t3-job launch --project /path/to/project --title "Title" --model codex --prompt "Instructions..."` (defaults to `--mode full-access`, auto-registers directory)
