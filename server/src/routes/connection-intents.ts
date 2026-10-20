@@ -9,7 +9,7 @@ import {
   connectionsSearchInputSchema,
   declineConnectionIntentSchema,
 } from "@paperclipai/shared";
-import { forbidden, unauthorized } from "../errors.js";
+import { HttpError, forbidden, unauthorized } from "../errors.js";
 import { verifyRuntimeToolsToken } from "../runtime-tools-token.js";
 import { connectionIntentService } from "../services/connection-intents.js";
 import { logActivity } from "../services/activity-log.js";
@@ -35,6 +35,15 @@ function resultContent(value: unknown) {
     structuredContent: value,
   };
 }
+function errorHttpStatus(err: unknown): number | null {
+  if (err instanceof HttpError) return err.status;
+  if (err && typeof err === "object") {
+    if ("status" in err && typeof err.status === "number") return err.status;
+    if ("statusCode" in err && typeof err.statusCode === "number") return err.statusCode;
+  }
+  return null;
+}
+
 
 export { RUNTIME_CONNECTION_TOOL_DEFINITIONS } from "../services/connection-tool-definitions.js";
 import { RUNTIME_CONNECTION_TOOL_DEFINITIONS } from "../services/connection-tool-definitions.js";
@@ -64,12 +73,29 @@ export function runtimeConnectionIntentRoutes(db: Db) {
 
   router.post("/mcp/runtime-tools", async (req, res) => {
     const claims = runtimeClaims(req);
-    // Streamable HTTP lifecycle calls are token uses too. Revalidate the bound
-    // run before initialize/list as well as before an actual tool call so an
-    // ended heartbeat cannot keep probing the endpoint with a once-valid token.
-    await service.validate(claims);
     const request = req.body as { jsonrpc?: string; id?: unknown; method?: string; params?: unknown };
     const id = request.id ?? null;
+    let validationEligible = false;
+    if (
+      request.method === "initialize" ||
+      request.method === "notifications/initialized" ||
+      request.method === "tools/list"
+    ) {
+      try {
+        await service.validate(claims);
+        validationEligible = true;
+      } catch (err) {
+        const status = errorHttpStatus(err);
+        if (status === 409 || status === 422) {
+          validationEligible = false;
+        } else {
+          throw err;
+        }
+      }
+    } else {
+      await service.validate(claims);
+      validationEligible = true;
+    }
     if (request.method === "initialize") {
       res.json({
         jsonrpc: "2.0",
@@ -91,7 +117,7 @@ export function runtimeConnectionIntentRoutes(db: Db) {
         jsonrpc: "2.0",
         id,
         result: {
-          tools: RUNTIME_CONNECTION_TOOL_DEFINITIONS,
+          tools: validationEligible ? RUNTIME_CONNECTION_TOOL_DEFINITIONS : [],
         },
       });
       return;

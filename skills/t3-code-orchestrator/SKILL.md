@@ -16,6 +16,8 @@ Connects Paperclip agents to T3 Code Nightly (`http://127.0.0.1:3773`) to launch
 ## Available Interfaces
 
 ### 1. Direct MCP Tools (Injected into agent runtime via `t3_code`)
+The MCP client authenticates with a `full-access` MCP client token (`rtc: "full-access"`), so `t3_project_create` and `t3_thread_launch` with `runtimeMode: "full-access"` work directly without human approval hangs.
+
 - `t3_project_list` / `t3_project_create`: Discover or register project workspace directories.
 - `t3_thread_launch`: Launch an engineering job thread with explicit workspace, prompt, and model configuration.
   ```json
@@ -23,7 +25,7 @@ Connects Paperclip agents to T3 Code Nightly (`http://127.0.0.1:3773`) to launch
     "projectId": "<projectId>",
     "title": "Implement feature X",
     "message": "Task instructions...",
-    "runtimeMode": "approval-required",
+    "runtimeMode": "full-access",
     "modelSelection": {
       "instanceId": "omp",
       "model": "openai-codex/gpt-6.1-sol"
@@ -36,9 +38,14 @@ Connects Paperclip agents to T3 Code Nightly (`http://127.0.0.1:3773`) to launch
 - `t3_thread_read`: Read durable state, progress, and messages from the thread.
 
 ### 2. Fast CLI Helper (`t3-job`)
+`t3-job` also authenticates with a `full-access` MCP client token (`rtc: "full-access"`).
+`t3-job launch` defaults to `--mode full-access` and automatically registers any local directory via `t3_project_create` if not already registered.
+
+- Preflight token check: `t3-job token-check` (verifies full-access token validity against T3 Code)
+- Issue browser pairing code: `t3-job pair` (issues a pairing code via `t3 auth pairing create --json` if a browser session ever needs to pair with `http://127.0.0.1:3773`)
 - Check projects: `t3-job projects`
 - Check allowed models: `t3-job models`
-- Launch job: `t3-job launch --project /path/to/project --title "Title" --model codex --prompt "Instructions..."`
+- Launch job: `t3-job launch --project /path/to/project --title "Title" --model codex --prompt "Instructions..."` (defaults to `--mode full-access`, auto-registers directory)
 - Check status: `t3-job status <threadId>`
 - Wait for completion: `t3-job wait <threadId>`
 - Send follow-up: `t3-job send <threadId> "Additional guidance"`
